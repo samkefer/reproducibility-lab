@@ -1,10 +1,10 @@
 ---
 title: "Reproducibility Report: Maglio & Polman (2014), Study 1"
 subtitle: "Bumper-rails version"
-author: "Your name here"
+author: "Samantha Kefer"
 date: today
 format:
-  html:
+  pdf:
     toc: true
     toc-location: left
     embed-resources: true
@@ -121,7 +121,7 @@ Count the participants in each direction × station combination. Replace each
 
 ```{r}
 d |>
-  count("FIXME", "FIXME")
+  count(DIRECTION, STN_NAME)
 ```
 
 Does this match the sample size in the paper (202 total, 101 per platform)?
@@ -137,7 +137,7 @@ Fill in the formula with the outcome (the distance rating) and the two
 predictors.
 
 ```{r}
-mod <- aov(FIXME ~ FIXME * FIXME, data = d)
+mod <- aov(DISTANCE ~ DIRECTION * STN_NAME, data = d)
 
 summary(mod)
 ```
@@ -179,7 +179,7 @@ ss_residual <- anova_table |>
 
 anova_table |>
   filter(term != "Residuals") |>
-  mutate(partial_eta_sq = "FIXME") |>
+  mutate(partial_eta_sq = sumsq/(sumsq+ss_residual)) |>
   select(term, df, statistic, p.value, partial_eta_sq)
 ```
 
@@ -199,20 +199,27 @@ SS_direction / SS_total.
 
 # 1. Keep only the St. George ratings
 st_george <- d |>
-  filter("FIXME")
+  filter(STN_NAME == "STG")
 
 # 2. Which group rated St. George as farther away, eastbound or westbound?
 #    No statistics yet, just the mean rating in each direction.
 st_george |>
-  group_by("FIXME") |>
-  summarize(mean_distance = "FIXME", n = n())
+  group_by(DIRECTION) |>
+  summarize(mean_distance = mean(DISTANCE), n = n())
 
 # 3. One-way ANOVA: distance predicted by direction
-st_george_mod <- aov("FIXME", data = st_george)
-tidy(st_george_mod)
+st_george_mod <- aov(DISTANCE ~ DIRECTION, data = st_george)
+st_george_anova <- tidy(st_george_mod)
 
 # 4. Partial eta squared (reuse your code from above)
-"FIXME"
+ss_residualSTG <- st_george_anova |>
+  filter(term == "Residuals") |>
+  pull(sumsq)
+
+st_george_anova |>
+  filter(term != "Residuals") |>
+  mutate(partial_eta_sq = sumsq/(sumsq+ss_residualSTG)) |>
+  select(term, df, statistic, p.value, partial_eta_sq)
 ```
 
 #### Spadina, Bloor-Yonge, and Sherbourne
@@ -223,43 +230,94 @@ chunk three times works. If you want to try something tidier, the
 
 ```{r}
 #| label: spadina
+spadina <- d |>
+  filter(STN_NAME == "SPAD")
 
+spadina |>
+  group_by(DIRECTION) |>
+  summarize(mean_distance = mean(DISTANCE), n = n())
+
+spadina_mod <- aov(DISTANCE ~ DIRECTION, data = spadina)
+spadina_anova <- tidy(spadina_mod)
+
+ss_residualSPAD <- spadina_anova |>
+  filter(term == "Residuals") |>
+  pull(sumsq)
+
+spadina_anova |>
+  filter(term != "Residuals") |>
+  mutate(partial_eta_sq = sumsq/(sumsq+ss_residualSPAD)) |>
+  select(term, df, statistic, p.value, partial_eta_sq)
 ```
 
 ```{r}
 #| label: bloor-yonge
+blooryonge <- d |>
+  filter(STN_NAME == "B-Y")
 
+blooryonge |>
+  group_by(DIRECTION) |>
+  summarize(mean_distance = mean(DISTANCE), n = n())
+
+blooryonge_mod <- aov(DISTANCE ~ DIRECTION, data = blooryonge)
+blooryonge_anova <- tidy(blooryonge_mod)
+
+ss_residualBY <- blooryonge_anova |>
+  filter(term == "Residuals") |>
+  pull(sumsq)
+
+blooryonge_anova |>
+  filter(term != "Residuals") |>
+  mutate(partial_eta_sq = sumsq/(sumsq+ss_residualBY)) |>
+  select(term, df, statistic, p.value, partial_eta_sq)
 ```
 
 ```{r}
 #| label: sherbourne
+sherbourne <- d |>
+  filter(STN_NAME == "SHER")
 
+sherbourne |>
+  group_by(DIRECTION) |>
+  summarize(mean_distance = mean(DISTANCE), n = n())
+
+sherbourne_mod <- aov(DISTANCE ~ DIRECTION, data = sherbourne)
+sherbourne_anova <- tidy(sherbourne_mod)
+
+ss_residualSHER <- sherbourne_anova |>
+  filter(term == "Residuals") |>
+  pull(sumsq)
+
+sherbourne_anova |>
+  filter(term != "Residuals") |>
+  mutate(partial_eta_sq = sumsq/(sumsq+ss_residualSHER)) |>
+  select(term, df, statistic, p.value, partial_eta_sq)
 ```
 
 Fill in this table as you go:
 
 | Station | Paper *p* | Your *p* | Paper ηp² | Your ηp² |
 |---|---|---|---|---|
-| St. George | < .001 | | .28 | |
-| Spadina | .001 | | .20 | |
-| Bloor-Yonge | .053 | | .08 | |
-| Sherbourne | < .001 | | .24 | |
+| St. George | < .001 | 7.22865e-05 | .28 | 0.2772092 |
+| Spadina | .001 | 0.001131006 | .20 |0.1962763 |
+| Bloor-Yonge | .053 | 0.05284615 | .08 | 0.0774451 |
+| Sherbourne | < .001 | 0.0003052116 | .24 | 0.2356667 |
 
 ## Step 5: Reflection
 
 Were you able to reproduce the results you attempted to reproduce? If not, which
 parts could you not reproduce?
 
-> ANSWER HERE
+> I was able to reproduce all of the results except the main effect of station (my value matched that of the teaching team). This is likely due to the uneven n in the Direction+Station counts.
 
 How difficult was it to reproduce the results?
 
-> ANSWER HERE
+> Since I used the "bumper rails" version of the lab, I did not find it especially challenging to reproduce the other results.
 
 What made it hard, and what made it easy? Think about the data files, the
 variable names, and how much the paper told you about the analysis.
 
-> ANSWER HERE
+> The variable names were definitely the most difficult aspect of the analysis. I especially disliked that the column names were all capitalized, and the redundnacy between the STN_NUMBER and STN_NAME columns.   
 
 ## Bonus questions
 
@@ -272,7 +330,9 @@ counts. What does that suggest about how the authors' software (SPSS) and R's
 first.
 
 ```{r}
+mod2 <- aov(DISTANCE ~ DIRECTION * STN_NAME, data = d)
 
+summary(mod2)
 ```
 
 **2. Orientation or direction?** The paper describes the factor as
@@ -283,6 +343,23 @@ with it to check.
 
 ```{r}
 
+d2<-d |>
+  filter (STN_NAME %in% c("SPAD", "STG")) |>
+  mutate("orientation" = if_else(DIRECTION == "EAST", "toward", "away")) |>
+  bind_rows(
+    d |>
+      filter (STN_NAME %in% c("B-Y", "SHER")) |>
+  mutate("orientation" = if_else(DIRECTION == "WEST", "toward", "away"))
+)
+
+d2 |>
+  count(STN_NAME, orientation)
+
+mod_orient <- aov(DISTANCE ~ orientation * STN_NAME, data = d2)
+summary(mod_orient)
+orient_anova_table <- tidy(mod_orient)
+orient_anova_table
+
 ```
 
 **3. Reproduce Figure 1.** Plot the mean distance rating for each station,
@@ -291,6 +368,26 @@ split by direction, with error bars of ±1 standard error, as in the paper.
 for you.
 
 ```{r}
+d3 <- d |>
+  group_by(DIRECTION, STN_NAME) |>
+  summarize(mean_distance = mean(DISTANCE),
+  se_distance = sd(DISTANCE) / sqrt(n()), 
+  .groups = "drop")
+
+d3 |>
+  ggplot(aes(x=STN_NAME, y=mean_distance, color=DIRECTION, group = DIRECTION))+
+  stat_summary(fun.data = mean_se) +
+  geom_point() +
+  geom_line()+
+  geom_errorbar(
+    aes(
+      ymin = mean_distance - se_distance,
+      ymax = mean_distance + se_distance
+    ),
+    width = 0.2
+  ) +
+    labs(x = NULL, y = "Subjective Distance")+
+  theme_minimal()
 
 ```
 
